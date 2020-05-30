@@ -1,0 +1,87 @@
+Parameters:
+  AMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+
+  KMSKeyId:
+    Type: String
+    Default: 632698fc-2d48-48ca-b781-7cf2ca114dfd
+
+Resources:
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: decrypt
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - kms:ReEncrypt
+                Resource:
+                  - !Sub arn:aws:kms:${AWS::Region}:{AWS::AccountId}:key/${KMSKeyId}
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref IAMRole
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: vpc-849531e0
+      GroupDescription: wireguard
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  # EBSVolume:
+  #
+  # EBSVolumeAttachment:
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceType: t3.nano
+        KeyName: boston
+        ImageId: !Ref AMI
+        InstanceInitiatedShutdownBehavior: stop
+        InstanceMarketOptions:
+          MarketType: spot
+          SpotOptions:
+            InstanceInterruptionBehavior: stop
+            SpotInstanceType: persistent
+        IamInstanceProfile:
+          Arn: !GetAtt InstanceProfile.Arn
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        UserData:
+          Fn::Base64: |
+            #!/bin/sh
+            yum update -y
+            amazon-linux-extras install docker
+            service docker start
+            usermod -a -G docker ec2-user
+            docker info
+
+        # BlockDeviceMappings:
+        #   - DeviceName: /dev/sdh
+        #     Ebs:
+        #       DeleteOnTermination: False
+        #       Encrypted: True
+        #       KmsKeyId: !Ref KMSKeyId
+        #       VolumeSize: 20
+        #       VolumeType: gp2

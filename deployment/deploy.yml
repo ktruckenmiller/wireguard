@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  gather_facts: false
+  vars:
+    stackname: "wireguard"
+  tasks:
+    - name: ec2 instance
+      cloudformation:
+        stack_name: "{{stackname}}"
+        state: present
+        region: us-west-2
+        template: ec2.yml

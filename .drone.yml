@@ -1,0 +1,17 @@
+---
+kind: pipeline
+name: deploy-wireguard
+
+steps:
+
+
+  - name: deploy-wireguard
+    image: ktruckenmiller/ansible
+    environment:
+      AWS_DEFAULT_REGION: us-west-2
+    commands:
+     - ansible-playbook -i ansible_connection=localhost deployment/deploy.yml -vvv
+
+trigger:
+  branch: master
+  event: push
