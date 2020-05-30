@@ -87,3 +87,10 @@ Resources:
         #       KmsKeyId: !Ref KMSKeyId
         #       VolumeSize: 20
         #       VolumeType: gp2
+
+  EC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplateSpecification:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
