@@ -33,6 +33,35 @@ Resources:
                   - kms:ReEncrypt
                 Resource:
                   - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KMSKeyId}
+              - Effect: Allow
+                Action:
+                  - ssm:DescribeAssociation
+                  - ssm:GetDeployablePatchSnapshotForInstance
+                  - ssm:GetDocument
+                  - ssm:DescribeDocument
+                  - ssm:GetManifest
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                  - ssm:ListAssociations
+                  - ssm:ListInstanceAssociations
+                  - ssm:PutInventory
+                  - ssm:PutComplianceItems
+                  - ssm:PutConfigurePackageResult
+                  - ssm:UpdateAssociationStatus
+                  - ssm:UpdateInstanceAssociationStatus
+                  - ssm:UpdateInstanceInformation
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
+                  - ec2messages:AcknowledgeMessage
+                  - ec2messages:DeleteMessage
+                  - ec2messages:FailMessage
+                  - ec2messages:GetEndpoint
+                  - ec2messages:GetMessages
+                  - ec2messages:SendReply
+                Resource:
+                  - "*"
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -70,6 +99,12 @@ Resources:
           Arn: !GetAtt InstanceProfile.Arn
         SecurityGroupIds:
           - !Ref SecurityGroup
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: True
+            DeleteOnTermination: False
+            SubnetId: subnet-9b2938c2
+
+
         UserData:
           Fn::Base64: |
             #!/bin/sh
