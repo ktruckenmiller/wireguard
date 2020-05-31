@@ -68,6 +68,7 @@ Resources:
                   - ec2messages:GetMessages
                   - ec2messages:SendReply
                   - ec2:ModifyInstanceAttribute
+                  - route53:ListHostedZones
                 Resource:
                   - "*"
   InstanceProfile:
@@ -165,6 +166,17 @@ Resources:
               " > /etc/sysctl.d/wg.conf;
               /sbin/sysctl --system;
               systemctl enable wg-quick@wg0.service;
+
+                            
+              # Load modules.
+              modprobe wireguard
+              modprobe iptable_nat
+              modprobe ip6table_nat
+
+              # Enable modules when rebooting.
+              echo "wireguard" > /etc/modules-load.d/wireguard.conf
+              echo "iptable_nat" > /etc/modules-load.d/iptable_nat.conf
+              echo "ip6table_nat" > /etc/modules-load.d/ip6table_nat.conf
 
               # mount efs
               mkdir -p /home/ec2-user/config
