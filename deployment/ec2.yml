@@ -60,6 +60,7 @@ Resources:
                   - ec2messages:GetEndpoint
                   - ec2messages:GetMessages
                   - ec2messages:SendReply
+                  - ec2:ModifyInstanceAttribute
                 Resource:
                   - "*"
   InstanceProfile:
@@ -109,13 +110,46 @@ Resources:
             Fn::Sub: |
               #!/bin/sh
               yum update -y
-              amazon-linux-extras install docker
-              service docker start
-              usermod -a -G docker ec2-user
-              docker info
-              curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-              chmod +x /usr/local/bin/docker-compose
-              /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
+              export PATH="/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/root/bin"
+              curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
+              yum clean all
+              yum install wireguard-dkms wireguard-tools iptables-services -y
+              until /sbin/modprobe wireguard
+              do
+                dmesg | grep wireguard;
+              done;
+              PRIVATE_KEY=$(aws --region ${AWS::Region} ssm get-parameter --name /wireguard/private --with-decryption --query Parameter.Value --output text)
+              PEER_PUBLIC_KEY=$(aws --region ${AWS::Region} ssm get-parameter --name /wireguard/peerpublic --with-decryption --query Parameter.Value --output text)
+              sed -i "s#PRIVATEKEY#$PRIVATE_KEY#" /etc/wireguard/wg0.conf
+              sed -i "s#PEERPUBLIC#$PEER_PUBLIC_KEY#" /etc/wireguard/wg0.conf
+              set -x
+
+              # source/dest check
+              INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id);
+              aws ec2 --region ${AWS::Region} modify-instance-attribute --instance-id $INSTANCE_ID --no-source-dest-check;
+
+
+              # iptables
+              /bin/systemctl enable iptables;
+              /bin/systemctl restart iptables;
+              /bin/systemctl status iptables;
+              /sbin/iptables -F;
+              /sbin/iptables-save > /etc/sysconfig/iptables;
+              /sbin/iptables -L;
+              # IP Forwarding
+              echo "
+              net.ipv4.conf.all.forwarding = 1
+              net.ipv6.conf.all.forwarding = 1
+              " > /etc/sysctl.d/wg.conf;
+              /sbin/sysctl --system;
+              systemctl enable wg-quick@wg0.service;
+              /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
+
+
+
+
+
+
         # BlockDeviceMappings:
         #   - DeviceName: /dev/sdh
         #     Ebs:
@@ -139,38 +173,24 @@ Resources:
                 - /etc/cfn/hooks.d/cfn-auto-reloader.conf
         config:
           files:
-            "/home/ec2-user/docker-compose.yml":
-              mode: 000644
-              owner: ec2-user
-              group: ec2-user
+            "/etc/wireguard/wg0.conf":
+              mode: 000600
+              owner: root
+              group: root
               content:
                 Fn::Sub: |
-                  ---
-                  version: "2.1"
-                  services:
-                    wireguard:
-                      image: linuxserver/wireguard
-                      container_name: wireguard
-                      cap_add:
-                        - NET_ADMIN
-                        - SYS_MODULE
-                      environment:
-                        - PUID=1000
-                        - PGID=1000
-                        - TZ=Europe/London
-                        - SERVERURL=vpn.kloudcover.com #optional
-                        - SERVERPORT=51820 #optional
-                        - PEERS=1 #optional
-                        - PEERDNS=auto #optional
-                        # - INTERNAL_SUBNET=10.13.13.0 #optional
-                      volumes:
-                        - /home/ec2-user/config:/config
-                        - /lib/modules:/lib/modules
-                      ports:
-                        - 51820:51820/udp
-                      sysctls:
-                        - net.ipv4.conf.all.src_valid_mark=1
-                      restart: unless-stopped
+                  [Interface]
+                  Address = 172.16.1.1/32
+                  ListenPort = 51820
+                  PrivateKey = PRIVATEKEY
+                  SaveConfig = true
+                  PostUp = iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+                  PostDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+                  [Peer]
+                  PublicKey = PEERPUBLIC
+                  AllowedIPs = 172.16.1.2/32
+
             "/etc/cfn/cfn-hup.conf":
               content: !Sub |
                 [main]
