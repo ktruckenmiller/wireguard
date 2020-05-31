@@ -95,12 +95,10 @@ Resources:
             SpotInstanceType: one-time
         IamInstanceProfile:
           Arn: !GetAtt InstanceProfile.Arn
-        SecurityGroupIds:
-          - !Ref SecurityGroup
         NetworkInterfaces:
           - AssociatePublicIpAddress: True
             DeleteOnTermination: True
-            SubnetId: subnet-9b2938c2
+            # SubnetId: subnet-9b2938c2
             DeviceIndex: 0
             Groups:
               - !Ref SecurityGroup
