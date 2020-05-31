@@ -89,16 +89,14 @@ Resources:
         InstanceType: t3.nano
         KeyName: boston
         ImageId: !Ref AMI
-        InstanceInitiatedShutdownBehavior: stop
         InstanceMarketOptions:
-          MarketType: one-time
+          MarketType: spot
           SpotOptions:
-            InstanceInterruptionBehavior: stop
-            SpotInstanceType: persistent
+            SpotInstanceType: one-time
         IamInstanceProfile:
           Arn: !GetAtt InstanceProfile.Arn
-        # SecurityGroupIds:
-        #   - !Ref SecurityGroup
+        SecurityGroupIds:
+          - !Ref SecurityGroup
         NetworkInterfaces:
           - AssociatePublicIpAddress: True
             DeleteOnTermination: True
@@ -186,7 +184,7 @@ Resources:
               content: !Sub |
                 [cfn-auto-reloader-hook]
                 triggers=post.update
-                path=Resources.autoScalingGroup.Metadata.AWS::CloudFormation::Init
+                path=Resources.ASG.Metadata.AWS::CloudFormation::Init
                 action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
                 runas=root
               mode: "000400"
