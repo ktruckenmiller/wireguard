@@ -35,6 +35,13 @@ Resources:
                   - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KMSKeyId}
               - Effect: Allow
                 Action:
+                  - route53:ChangeResourceRecordSets
+                  - route53:ListResourceRecordSets
+                Resource:
+                  - arn:aws:route53:::hostedzone/Z1IJC8V5Z715J8
+
+              - Effect: Allow
+                Action:
                   - ssm:DescribeAssociation
                   - ssm:GetDeployablePatchSnapshotForInstance
                   - ssm:GetDocument
@@ -78,6 +85,14 @@ Resources:
           FromPort: 51820
           ToPort: 51820
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
@@ -105,8 +120,18 @@ Resources:
             Fn::Sub: |
               #!/bin/sh
               yum update -y
+              yum install -y amazon-efs-utils
               /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
               export PATH="/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/root/bin"
+
+              amazon-linux-extras install docker
+              service docker start
+              usermod -a -G docker ec2-user
+              docker info
+              # curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+              # chmod +x /usr/local/bin/docker-compose
+              /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
+
               set -euxo pipefail;
               trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
               curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
@@ -140,6 +165,30 @@ Resources:
               " > /etc/sysctl.d/wg.conf;
               /sbin/sysctl --system;
               systemctl enable wg-quick@wg0.service;
+
+              # mount efs
+              mkdir -p /home/ec2-user/config
+              echo "fs-8c37c325:/ /home/ec2-user/config efs tls,_netdev" >> /etc/fstab
+              sleep 5
+              mount -t efs -o tls fs-8c37c325:/ /home/ec2-user/config
+
+              docker run -d \
+                --restart=always \
+                -e DOMAIN_NAME='vpn.kloudcover.com' \
+                -e HOSTED_ZONE='kloudcover.com' \
+                ktruckenmiller/aws-docker-dynamic-dns
+              # run subspac e
+              docker run -d \
+                  --name subspace \
+                  --restart always \
+                  --network host \
+                  --cap-add NET_ADMIN \
+                  --volume /home/ec2-user/config:/data \
+                  -e SUBSPACE_LETSENCRYPT="true" \
+                  -e SUBSPACE_HTTP_HOST=vpn.kloudcover.com \
+                  -e SUBSPACE_HTTP_INSECURE="false" \
+                  -e SUBSPACE_NAMESERVER="1.1.1.1" \
+                  ktruckenmiller/subspace:latest
               /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
 
 
@@ -165,6 +214,7 @@ Resources:
                 Fn::Sub: |
                   [Interface]
                   Address = 172.16.1.1/32
+                  DNS = 1.1.1.1
                   ListenPort = 51820
                   PrivateKey = PRIVATEKEY
                   SaveConfig = true
@@ -173,7 +223,9 @@ Resources:
 
                   [Peer]
                   PublicKey = PEERPUBLIC
-                  AllowedIPs = 172.16.1.2/32
+                  Endpoint = vpn.kloudcover.com:51820
+                  AllowedIPs = 0.0.0.0/0
+
 
             "/etc/cfn/cfn-hup.conf":
               content: !Sub |
