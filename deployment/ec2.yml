@@ -78,11 +78,6 @@ Resources:
           FromPort: 51820
           ToPort: 51820
           CidrIp: 0.0.0.0/0
-
-  # EBSVolume:
-  #
-  # EBSVolumeAttachment:
-
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
@@ -146,19 +141,6 @@ Resources:
               /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
 
 
-
-
-
-
-        # BlockDeviceMappings:
-        #   - DeviceName: /dev/sdh
-        #     Ebs:
-        #       DeleteOnTermination: True
-        #       Encrypted: True
-        #       KmsKeyId: !Ref KMSKeyId
-        #       VolumeSize: 20
-        #       VolumeType: gp2
-
   ASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     Metadata:
@@ -220,7 +202,21 @@ Resources:
         - subnet-ed43849b
         - subnet-9b2938c2
       MinSize: 1
-      MaxSize: 1
+      MaxSize: 2
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      CreationPolicy:
+        ResourceSignal:
+          Timeout: PT15M
+      UpdatePolicy:
+        AutoScalingRollingUpdate:
+          MaxBatchSize: 1
+          MinInstancesInService: 1
+          MinSuccessfulInstancesPercent: 100
+          PauseTime: PT15M
+          SuspendProcesses:
+            - ScheduledActions
+            - AZRebalance
+            - ReplaceUnhealthy
+          WaitOnResourceSignals: true
