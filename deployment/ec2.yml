@@ -101,7 +101,7 @@ Resources:
         #   - !Ref SecurityGroup
         NetworkInterfaces:
           - AssociatePublicIpAddress: True
-            DeleteOnTermination: False
+            DeleteOnTermination: True
             SubnetId: subnet-9b2938c2
             DeviceIndex: 0
             Groups:
@@ -121,16 +121,24 @@ Resources:
         # BlockDeviceMappings:
         #   - DeviceName: /dev/sdh
         #     Ebs:
-        #       DeleteOnTermination: False
+        #       DeleteOnTermination: True
         #       Encrypted: True
         #       KmsKeyId: !Ref KMSKeyId
         #       VolumeSize: 20
         #       VolumeType: gp2
 
-  EC2:
-    Type: AWS::EC2::Instance
+  ASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
     Metadata:
       AWS::CloudFormation::Init:
+        services:
+          sysvinit:
+            cfn-hup:
+              enabled: true
+              ensureRunning: true
+              files:
+                - /etc/cfn/cfn-hup.conf
+                - /etc/cfn/hooks.d/cfn-auto-reloader.conf
         config:
           files:
             "/home/ec2-user/docker-compose.yml":
@@ -165,7 +173,36 @@ Resources:
                     sysctls:
                       - net.ipv4.conf.all.src_valid_mark=1
                     restart: unless-stopped
+            "/etc/cfn/cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackName}
+                region=${AWS::Region}
+                interval=1
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.autoScalingGroup.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
+                runas=root
+              mode: "000400"
+              owner: "root"
+              group: "root"
     Properties:
+      AvailabilityZones:
+        - us-west-2a
+        - us-west-2b
+        - us-west-2c
+      VPCZoneIdentifier:
+        - subnet-bc3193d8
+        - subnet-ed43849b
+        - subnet-9b2938c2
+      MinSize: 1
+      MaxSize: 1
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
