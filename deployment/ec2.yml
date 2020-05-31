@@ -206,17 +206,17 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      CreationPolicy:
-        ResourceSignal:
-          Timeout: PT15M
-      UpdatePolicy:
-        AutoScalingRollingUpdate:
-          MaxBatchSize: 1
-          MinInstancesInService: 1
-          MinSuccessfulInstancesPercent: 100
-          PauseTime: PT15M
-          SuspendProcesses:
-            - ScheduledActions
-            - AZRebalance
-            - ReplaceUnhealthy
-          WaitOnResourceSignals: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 1
+        MinInstancesInService: 1
+        MinSuccessfulInstancesPercent: 100
+        PauseTime: PT15M
+        SuspendProcesses:
+          - ScheduledActions
+          - AZRebalance
+          - ReplaceUnhealthy
+        WaitOnResourceSignals: true
