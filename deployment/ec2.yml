@@ -105,6 +105,7 @@ Resources:
             Fn::Sub: |
               #!/bin/sh
               yum update -y
+              /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
               export PATH="/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/root/bin"
               curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
               yum clean all
