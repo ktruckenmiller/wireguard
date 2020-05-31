@@ -137,16 +137,11 @@ Resources:
               trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
               curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
               yum clean all
-              yum install wireguard-dkms wireguard-tools iptables-services -y
+              yum install wireguard-dkms iptables-services -y
               until /sbin/modprobe wireguard
               do
                 dmesg | grep wireguard;
               done;
-              PRIVATE_KEY=$(aws --region ${AWS::Region} ssm get-parameter --name /wireguard/private --with-decryption --query Parameter.Value --output text)
-              PEER_PUBLIC_KEY=$(aws --region ${AWS::Region} ssm get-parameter --name /wireguard/peerpublic --with-decryption --query Parameter.Value --output text)
-              sed -i "s#PRIVATEKEY#$PRIVATE_KEY#" /etc/wireguard/wg0.conf
-              sed -i "s#PEERPUBLIC#$PEER_PUBLIC_KEY#" /etc/wireguard/wg0.conf
-              set -x
 
               # source/dest check
               INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id);
@@ -189,6 +184,9 @@ Resources:
                 -e DOMAIN_NAME='vpn.kloudcover.com' \
                 -e HOSTED_ZONE='kloudcover.com' \
                 ktruckenmiller/aws-docker-dynamic-dns
+
+              # wait for dns to come online
+              sleep 300
               # run subspac e
               docker run -d \
                   --name subspace \
@@ -200,6 +198,7 @@ Resources:
                   -e SUBSPACE_HTTP_HOST=vpn.kloudcover.com \
                   -e SUBSPACE_HTTP_INSECURE="false" \
                   -e SUBSPACE_LISTENPORT="51820" \
+                  -e SUBSPACE_IPV6_NAT_ENABLED=1 \
                   ktruckenmiller/subspace:latest
               /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
 
