@@ -91,7 +91,7 @@ Resources:
         ImageId: !Ref AMI
         InstanceInitiatedShutdownBehavior: stop
         InstanceMarketOptions:
-          MarketType: spot
+          MarketType: one-time
           SpotOptions:
             InstanceInterruptionBehavior: stop
             SpotInstanceType: persistent
@@ -127,82 +127,82 @@ Resources:
         #       VolumeSize: 20
         #       VolumeType: gp2
 
-  ASG:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Metadata:
-      AWS::CloudFormation::Init:
-        services:
-          sysvinit:
-            cfn-hup:
-              enabled: true
-              ensureRunning: true
-              files:
-                - /etc/cfn/cfn-hup.conf
-                - /etc/cfn/hooks.d/cfn-auto-reloader.conf
-        config:
-          files:
-            "/home/ec2-user/docker-compose.yml":
-              mode: 000644
-              owner: ec2-user
-              group: ec2-user
-              content:
-                Fn::Sub: |
-                  ---
-                  version: "2.1"
-                  services:
-                  wireguard:
-                    image: linuxserver/wireguard
-                    container_name: wireguard
-                    cap_add:
-                      - NET_ADMIN
-                      - SYS_MODULE
-                    environment:
-                      - PUID=1000
-                      - PGID=1000
-                      - TZ=Europe/London
-                      - SERVERURL=vpn.kloudcover.com #optional
-                      - SERVERPORT=51820 #optional
-                      - PEERS=1 #optional
-                      - PEERDNS=auto #optional
-                      # - INTERNAL_SUBNET=10.13.13.0 #optional
-                    volumes:
-                      - /home/ec2-user/config:/config
-                      - /lib/modules:/lib/modules
-                    ports:
-                      - 51820:51820/udp
-                    sysctls:
-                      - net.ipv4.conf.all.src_valid_mark=1
-                    restart: unless-stopped
-            "/etc/cfn/cfn-hup.conf":
-              content: !Sub |
-                [main]
-                stack=${AWS::StackName}
-                region=${AWS::Region}
-                interval=1
-              mode: "000400"
-              owner: "root"
-              group: "root"
-            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
-              content: !Sub |
-                [cfn-auto-reloader-hook]
-                triggers=post.update
-                path=Resources.autoScalingGroup.Metadata.AWS::CloudFormation::Init
-                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
-                runas=root
-              mode: "000400"
-              owner: "root"
-              group: "root"
-    Properties:
-      AvailabilityZones:
-        - us-west-2a
-        - us-west-2b
-        - us-west-2c
-      VPCZoneIdentifier:
-        - subnet-bc3193d8
-        - subnet-ed43849b
-        - subnet-9b2938c2
-      MinSize: 1
-      MaxSize: 1
-      LaunchTemplate:
-        LaunchTemplateId: !Ref LaunchTemplate
-        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+  # ASG:
+  #   Type: AWS::AutoScaling::AutoScalingGroup
+  #   Metadata:
+  #     AWS::CloudFormation::Init:
+  #       services:
+  #         sysvinit:
+  #           cfn-hup:
+  #             enabled: true
+  #             ensureRunning: true
+  #             files:
+  #               - /etc/cfn/cfn-hup.conf
+  #               - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+  #       config:
+  #         files:
+  #           "/home/ec2-user/docker-compose.yml":
+  #             mode: 000644
+  #             owner: ec2-user
+  #             group: ec2-user
+  #             content:
+  #               Fn::Sub: |
+  #                 ---
+  #                 version: "2.1"
+  #                 services:
+  #                 wireguard:
+  #                   image: linuxserver/wireguard
+  #                   container_name: wireguard
+  #                   cap_add:
+  #                     - NET_ADMIN
+  #                     - SYS_MODULE
+  #                   environment:
+  #                     - PUID=1000
+  #                     - PGID=1000
+  #                     - TZ=Europe/London
+  #                     - SERVERURL=vpn.kloudcover.com #optional
+  #                     - SERVERPORT=51820 #optional
+  #                     - PEERS=1 #optional
+  #                     - PEERDNS=auto #optional
+  #                     # - INTERNAL_SUBNET=10.13.13.0 #optional
+  #                   volumes:
+  #                     - /home/ec2-user/config:/config
+  #                     - /lib/modules:/lib/modules
+  #                   ports:
+  #                     - 51820:51820/udp
+  #                   sysctls:
+  #                     - net.ipv4.conf.all.src_valid_mark=1
+  #                   restart: unless-stopped
+  #           "/etc/cfn/cfn-hup.conf":
+  #             content: !Sub |
+  #               [main]
+  #               stack=${AWS::StackName}
+  #               region=${AWS::Region}
+  #               interval=1
+  #             mode: "000400"
+  #             owner: "root"
+  #             group: "root"
+  #           "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+  #             content: !Sub |
+  #               [cfn-auto-reloader-hook]
+  #               triggers=post.update
+  #               path=Resources.autoScalingGroup.Metadata.AWS::CloudFormation::Init
+  #               action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
+  #               runas=root
+  #             mode: "000400"
+  #             owner: "root"
+  #             group: "root"
+  #   Properties:
+  #     AvailabilityZones:
+  #       - us-west-2a
+  #       - us-west-2b
+  #       - us-west-2c
+  #     VPCZoneIdentifier:
+  #       - subnet-bc3193d8
+  #       - subnet-ed43849b
+  #       - subnet-9b2938c2
+  #     MinSize: 1
+  #     MaxSize: 1
+  #     LaunchTemplate:
+  #       LaunchTemplateId: !Ref LaunchTemplate
+  #       Version: !GetAtt LaunchTemplate.LatestVersionNumber
