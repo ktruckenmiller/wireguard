@@ -167,7 +167,7 @@ Resources:
               /sbin/sysctl --system;
               systemctl enable wg-quick@wg0.service;
 
-                            
+
               # Load modules.
               modprobe wireguard
               modprobe iptable_nat
@@ -199,6 +199,7 @@ Resources:
                   -e SUBSPACE_LETSENCRYPT="true" \
                   -e SUBSPACE_HTTP_HOST=vpn.kloudcover.com \
                   -e SUBSPACE_HTTP_INSECURE="false" \
+                  -e SUBSPACE_LISTENPORT="51820" \
                   -e SUBSPACE_NAMESERVER="1.1.1.1" \
                   ktruckenmiller/subspace:latest
               /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
