@@ -157,9 +157,9 @@ Resources:
         config:
           files:
             "/etc/wireguard/wg0.conf":
-              mode: 000600
-              owner: root
-              group: root
+              mode: "000600"
+              owner: "root"
+              group: "root"
               content:
                 Fn::Sub: |
                   [Interface]
