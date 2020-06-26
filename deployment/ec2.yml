@@ -1,7 +1,7 @@
 Parameters:
   AMI:
     Type: String
-    Default: ami-003634241a8fcdec0
+    Default: ami-0a9185d39c4993936
 
   KMSKeyId:
     Type: String
@@ -118,60 +118,74 @@ Resources:
           Fn::Base64:
             Fn::Sub: |
               #!/bin/sh -x
-              # rm /boot/grub/menu.lst
-              # update-grub-legacy-ec2 -y
-              # apt-get dist-upgrade -qq --force-yes
-              apt-get update -y;
-              apt-get -y install python-pip;
-              pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
 
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get remove -y dnsmasq
+
+              echo nameserver 1.1.1.1 >/etc/resolv.conf
+              # Load modules.
+              modprobe wireguard
+              modprobe iptable_nat
+              modprobe ip6table_nat
+
+              # Enable IP forwarding
+              sysctl -w net.ipv4.ip_forward=1
+              sysctl -w net.ipv6.conf.all.forwarding=1
+
+              # nfs
+              mkdir -p /home/ec2-user/config
+              sudo mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-8c37c325.efs.us-west-2.amazonaws.com:/ /home/ec2-user/config
+
+              docker run -d \
+                --restart=always \
+                -e DOMAIN_NAME='vpn.kloudcover.com' \
+                -e HOSTED_ZONE='kloudcover.com' \
+                ktruckenmiller/aws-docker-dynamic-dns
+
+              # run subspace
+              docker create \
+                  --name subspace \
+                  --restart always \
+                  --network host \
+                  --cap-add NET_ADMIN \
+                  --volume /home/ec2-user/config:/data \
+                  -e SUBSPACE_LETSENCRYPT="false" \
+                  -e SUBSPACE_HTTP_HOST=vpn.kloudcover.com \
+                  -e SUBSPACE_HTTP_INSECURE="false" \
+                  -e SUBSPACE_LISTENPORT="51820" \
+                  -e SUBSPACE_IPV6_NAT_ENABLED=1 \
+                  ktruckenmiller/subspace:latest
               /usr/local/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
               /usr/local/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
 
-              apt-get install -y jq
-              apt-get install -y nfs-common
-              # apt-get install -y linux-image-extra-virtual
-              # apt-get install -y apt-transport-https
-              # apt-get install -y ca-certificates
-              # apt-get install -y curl
-              # apt-get install -y software-properties-common
+              docker start subspace
+              docker logs subspace
 
-              # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-              # apt-key fingerprint 0EBFCD88
-              # add-apt-repository \
-              #   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-              #   $(lsb_release -cs) \
-              #   stable"
-              # apt-get update && apt-get install docker-ce -y
-              # systemctl stop docker
-              # cat <<'EOF' >> /etc/docker/daemon.json
-              # {
-              #   "storage-driver": "overlay2"
-              # }
-              # EOF
+              # add-apt-repository ppa:wireguard/wireguard -y
+              # apt-get update -y;
+              #
+              # apt-get -y install python-pip;
+              # pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+              #
+              #
+              # apt-get install -y jq nfs-common awscli docker-ce
+              #
+              # mkdir -p /home/ec2-user/config
+              # sudo mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-8c37c325.efs.us-west-2.amazonaws.com:/ /home/ec2-user/config
+              #
+              # apt-get install wireguard-dkms wireguard-tools wireguard iptables-persistent -y
 
-              # # awscli
-              # apt-get install awscli -y;
-              #########
+              #########  CREATE AMI?
+              # rm /boot/grub/menu.lst
+              # update-grub-legacy-ec2 -y
+              # apt-get dist-upgrade -qq --force-yes
               # yum update -y
-              # yum install -y amazon-efs-utils
-              # /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
               # export PATH="/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/root/bin"
               #
-              # amazon-linux-extras install docker
-              # service docker start
-              # usermod -a -G docker ec2-user
-              # docker info
-              # # curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-              # # chmod +x /usr/local/bin/docker-compose
-              # /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
               #
               # set -euxo pipefail;
               # trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
               #
-              # yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y;
-              # curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo;
-              # yum clean all
               #
               # yum install wireguard-dkms wireguard-tools iptables-services -y;
               # until /sbin/modprobe wireguard
