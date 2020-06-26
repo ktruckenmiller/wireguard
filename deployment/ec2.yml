@@ -1,7 +1,7 @@
 Parameters:
   AMI:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+    Type: String
+    Default: ami-003634241a8fcdec0
 
   KMSKeyId:
     Type: String
@@ -118,31 +118,57 @@ Resources:
           Fn::Base64:
             Fn::Sub: |
               #!/bin/sh
-              yum update -y
-              yum install -y amazon-efs-utils
-              /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
-              export PATH="/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/root/bin"
+              apt-get update && apt-get install \
+                jq \
+                nfs-common \
+                python-pip \
+                linux-image-extra-virtual \
+                apt-transport-https \
+                ca-certificates \
+                curl software-properties-common -y;
 
-              amazon-linux-extras install docker
-              service docker start
-              usermod -a -G docker ec2-user
-              docker info
-              # curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-              # chmod +x /usr/local/bin/docker-compose
-              /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+              apt-key fingerprint 0EBFCD88
+              add-apt-repository \
+                "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+                $(lsb_release -cs) \
+                stable"
+              apt-get update && apt-get install docker-ce -y
+              systemctl stop docker
+              cat <<'EOF' >> /etc/docker/daemon.json
+              {
+                "storage-driver": "overlay2"
+              }
+              EOF
 
-              set -euxo pipefail;
-              trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
+              # awscli
+              apt-get install awscli -y;
 
-              yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y;
-              curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo;
-              yum clean all
-
-              yum install wireguard-dkms wireguard-tools iptables-services -y;
-              until /sbin/modprobe wireguard
-              do
-                dmesg | grep wireguard;
-              done;
+              # yum update -y
+              # yum install -y amazon-efs-utils
+              # /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
+              # export PATH="/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/root/bin"
+              #
+              # amazon-linux-extras install docker
+              # service docker start
+              # usermod -a -G docker ec2-user
+              # docker info
+              # # curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+              # # chmod +x /usr/local/bin/docker-compose
+              # /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
+              #
+              # set -euxo pipefail;
+              # trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
+              #
+              # yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y;
+              # curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo;
+              # yum clean all
+              #
+              # yum install wireguard-dkms wireguard-tools iptables-services -y;
+              # until /sbin/modprobe wireguard
+              # do
+              #   dmesg | grep wireguard;
+              # done;
 
               # # source/dest check
               # INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id);
