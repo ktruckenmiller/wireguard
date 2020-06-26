@@ -120,11 +120,10 @@ Resources:
               #!/bin/sh
               apt-get update -y;
               apt-get -y install python-setuptools;
-              mkdir aws-cfn-bootstrap-latest
-              curl https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz | tar xz -C aws-cfn-bootstrap-latest --strip-components 1
-              easy_install aws-cfn-bootstrap-latest
-              /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
-              /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
+              pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+              /usr/local/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
+              /usr/local/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
+
               # apt-get update -y && apt-get install \
               #   jq \
               #   nfs-common \
