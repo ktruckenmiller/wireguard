@@ -8,6 +8,17 @@ Parameters:
     Default: 632698fc-2d48-48ca-b781-7cf2ca114dfd
 
 Resources:
+   DNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Sub kloudcover.com.
+      Comment: DNS name for subspace
+      Name: !Sub subspace.kloudcover.com.
+      Type: A
+      AliasTarget:
+        DNSName: kloudco-ALB-1XOWGRS4DIG1S-1468524797.us-west-2.elb.amazonaws.com
+        HostedZoneId: Z35SXDOTRQ7X7K
+
   IAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -33,6 +44,11 @@ Resources:
                   - kms:ReEncrypt
                 Resource:
                   - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KMSKeyId}
+              # - Effect: Allow
+              #   Action:
+              #     - efs:Describe*
+              #   Resource:
+              #     - "*"
               - Effect: Allow
                 Action:
                   - route53:ChangeResourceRecordSets
@@ -122,7 +138,7 @@ Resources:
               export DEBIAN_FRONTEND=noninteractive
               apt-get remove -y dnsmasq
               systemctl stop systemd-resolved
-              # echo nameserver 1.1.1.1 >/etc/resolv.conf
+              echo nameserver 1.1.1.1 >/etc/resolv.conf
               # Load modules.
               modprobe wireguard
               modprobe iptable_nat
@@ -135,7 +151,7 @@ Resources:
               # nfs
               mkdir -p /home/ec2-user/config
               sleep 20
-              sudo mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-8c37c325.efs.us-west-2.amazonaws.com:/ /home/ec2-user/config
+              sudo mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 10.78.72.64:/ /home/ec2-user/config
 
               docker run -d \
                 --restart=always \
@@ -156,10 +172,11 @@ Resources:
                   -e SUBSPACE_LISTENPORT="51820" \
                   -e SUBSPACE_IPV6_NAT_ENABLED=1 \
                   ktruckenmiller/subspace:latest
+              docker start subspace
               /usr/local/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
               /usr/local/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
 
-              docker start subspace
+
               docker logs subspace
 
               # add-apt-repository ppa:wireguard/wireguard -y
