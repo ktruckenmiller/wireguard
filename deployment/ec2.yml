@@ -121,7 +121,7 @@ Resources:
 
               export DEBIAN_FRONTEND=noninteractive
               apt-get remove -y dnsmasq
-
+              systemctl stop systemd-resolved
               echo nameserver 1.1.1.1 >/etc/resolv.conf
               # Load modules.
               modprobe wireguard
@@ -134,6 +134,7 @@ Resources:
 
               # nfs
               mkdir -p /home/ec2-user/config
+              sleep 20
               sudo mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-8c37c325.efs.us-west-2.amazonaws.com:/ /home/ec2-user/config
 
               docker run -d \
@@ -328,8 +329,8 @@ Resources:
               group: "root"
 
     Properties:
-      # TargetGroupARNs:
-      #   - !Ref TargetGroup
+      TargetGroupARNs:
+        - !Ref TargetGroup
       AvailabilityZones:
         - us-west-2a
         - us-west-2b
