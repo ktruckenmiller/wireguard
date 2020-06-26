@@ -119,7 +119,7 @@ Resources:
             Fn::Sub: |
               #!/bin/sh
               apt-get update -y;
-              apt-get -y install python-setuptools;
+              apt-get -y install python-setuptools python-pip;
               pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
               /usr/local/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
               /usr/local/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
