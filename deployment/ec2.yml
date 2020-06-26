@@ -185,16 +185,14 @@ Resources:
                 -e HOSTED_ZONE='kloudcover.com' \
                 ktruckenmiller/aws-docker-dynamic-dns
 
-              # wait for dns to come online
-              sleep 300
-              # run subspac e
+              # run subspace
               docker run -d \
                   --name subspace \
                   --restart always \
                   --network host \
                   --cap-add NET_ADMIN \
                   --volume /home/ec2-user/config:/data \
-                  -e SUBSPACE_LETSENCRYPT="true" \
+                  -e SUBSPACE_LETSENCRYPT="false" \
                   -e SUBSPACE_HTTP_HOST=vpn.kloudcover.com \
                   -e SUBSPACE_HTTP_INSECURE="false" \
                   -e SUBSPACE_LISTENPORT="51820" \
@@ -202,6 +200,11 @@ Resources:
                   ktruckenmiller/subspace:latest
               /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
 
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Protocol: HTTP
+      VpcId: vpc-849531e0
 
   ASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -257,6 +260,8 @@ Resources:
               mode: "000400"
               owner: "root"
               group: "root"
+    TargetGroupARNs:
+      - !Sub ${TargetGroup.Arn}
     Properties:
       AvailabilityZones:
         - us-west-2a
