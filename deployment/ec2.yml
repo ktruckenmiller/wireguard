@@ -279,7 +279,7 @@ Resources:
 
     Properties:
       TargetGroupARNs:
-        - !Sub ${TargetGroup.Arn}
+        - !Ref TargetGroup
       AvailabilityZones:
         - us-west-2a
         - us-west-2b
