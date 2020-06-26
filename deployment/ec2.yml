@@ -278,8 +278,8 @@ Resources:
               group: "root"
 
     Properties:
-      TargetGroupARNs:
-        - !Ref TargetGroup
+      # TargetGroupARNs:
+      #   - !Ref TargetGroup
       AvailabilityZones:
         - us-west-2a
         - us-west-2b
