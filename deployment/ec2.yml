@@ -47,8 +47,8 @@ Resources:
                   - ssm:GetDocument
                   - ssm:DescribeDocument
                   - ssm:GetManifest
-                  - ssm:GetParameter
-                  - ssm:GetParameters
+                  # - ssm:GetParameter
+                  # - ssm:GetParameters
                   - ssm:ListAssociations
                   - ssm:ListInstanceAssociations
                   - ssm:PutInventory
@@ -131,75 +131,71 @@ Resources:
               # chmod +x /usr/local/bin/docker-compose
               /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
 
-              # set -euxo pipefail;
-              # trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
-
-              # get wire
+              set -euxo pipefail;
+              trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
               curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
               yum clean all
-              yum install elrepo-release epel-release
-              yum install kmod-wireguard wireguard-tools
-              yum install wireguard-dkms iptables-services -y
-              until /sbin/modprobe wireguard
-              do
-                dmesg | grep wireguard;
-              done;
-
-              # source/dest check
-              INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id);
-              aws ec2 --region ${AWS::Region} modify-instance-attribute --instance-id $INSTANCE_ID --no-source-dest-check;
-
-              # iptables
-              /bin/systemctl enable iptables;
-              /bin/systemctl restart iptables;
-              /bin/systemctl status iptables;
-              /sbin/iptables -F;
-              /sbin/iptables-save > /etc/sysconfig/iptables;
-              /sbin/iptables -L;
-              # IP Forwarding
-              echo "
-              net.ipv4.conf.all.forwarding = 1
-              net.ipv6.conf.all.forwarding = 1
-              " > /etc/sysctl.d/wg.conf;
-              /sbin/sysctl --system;
-              systemctl enable wg-quick@wg0.service;
-
-
-              # Load modules.
-              modprobe wireguard
-              modprobe iptable_nat
-              modprobe ip6table_nat
-
-              # Enable modules when rebooting.
-              echo "wireguard" > /etc/modules-load.d/wireguard.conf
-              echo "iptable_nat" > /etc/modules-load.d/iptable_nat.conf
-              echo "ip6table_nat" > /etc/modules-load.d/ip6table_nat.conf
-
-              # mount efs
-              mkdir -p /home/ec2-user/config
-              echo "fs-8c37c325:/ /home/ec2-user/config efs tls,_netdev" >> /etc/fstab
-              sleep 5
-              mount -t efs -o tls fs-8c37c325:/ /home/ec2-user/config
-
-              docker run -d \
-                --restart=always \
-                -e DOMAIN_NAME='vpn.kloudcover.com' \
-                -e HOSTED_ZONE='kloudcover.com' \
-                ktruckenmiller/aws-docker-dynamic-dns
-
-              # run subspace
-              docker run -d \
-                  --name subspace \
-                  --restart always \
-                  --network host \
-                  --cap-add NET_ADMIN \
-                  --volume /home/ec2-user/config:/data \
-                  -e SUBSPACE_LETSENCRYPT="false" \
-                  -e SUBSPACE_HTTP_HOST=vpn.kloudcover.com \
-                  -e SUBSPACE_HTTP_INSECURE="false" \
-                  -e SUBSPACE_LISTENPORT="51820" \
-                  -e SUBSPACE_IPV6_NAT_ENABLED=1 \
-                  ktruckenmiller/subspace:latest
+              # yum install wireguard-dkms wireguard-tools iptables-services -y;
+              # until /sbin/modprobe wireguard
+              # do
+              #   dmesg | grep wireguard;
+              # done;
+              #
+              # # source/dest check
+              # INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id);
+              # aws ec2 --region ${AWS::Region} modify-instance-attribute --instance-id $INSTANCE_ID --no-source-dest-check;
+              #
+              # # iptables
+              # /bin/systemctl enable iptables;
+              # /bin/systemctl restart iptables;
+              # /bin/systemctl status iptables;
+              # /sbin/iptables -F;
+              # /sbin/iptables-save > /etc/sysconfig/iptables;
+              # /sbin/iptables -L;
+              # # IP Forwarding
+              # echo "
+              # net.ipv4.conf.all.forwarding = 1
+              # net.ipv6.conf.all.forwarding = 1
+              # " > /etc/sysctl.d/wg.conf;
+              # /sbin/sysctl --system;
+              # systemctl enable wg-quick@wg0.service;
+              #
+              #
+              # # Load modules.
+              # modprobe wireguard
+              # modprobe iptable_nat
+              # modprobe ip6table_nat
+              #
+              # # Enable modules when rebooting.
+              # echo "wireguard" > /etc/modules-load.d/wireguard.conf
+              # echo "iptable_nat" > /etc/modules-load.d/iptable_nat.conf
+              # echo "ip6table_nat" > /etc/modules-load.d/ip6table_nat.conf
+              #
+              # # mount efs
+              # mkdir -p /home/ec2-user/config
+              # echo "fs-8c37c325:/ /home/ec2-user/config efs tls,_netdev" >> /etc/fstab
+              # sleep 5
+              # mount -t efs -o tls fs-8c37c325:/ /home/ec2-user/config
+              #
+              # docker run -d \
+              #   --restart=always \
+              #   -e DOMAIN_NAME='vpn.kloudcover.com' \
+              #   -e HOSTED_ZONE='kloudcover.com' \
+              #   ktruckenmiller/aws-docker-dynamic-dns
+              #
+              # # run subspace
+              # docker run -d \
+              #     --name subspace \
+              #     --restart always \
+              #     --network host \
+              #     --cap-add NET_ADMIN \
+              #     --volume /home/ec2-user/config:/data \
+              #     -e SUBSPACE_LETSENCRYPT="false" \
+              #     -e SUBSPACE_HTTP_HOST=vpn.kloudcover.com \
+              #     -e SUBSPACE_HTTP_INSECURE="false" \
+              #     -e SUBSPACE_LISTENPORT="51820" \
+              #     -e SUBSPACE_IPV6_NAT_ENABLED=1 \
+              #     ktruckenmiller/subspace:latest
               /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
 
   TargetGroup:
