@@ -135,43 +135,26 @@ Resources:
 
               set -euxo pipefail;
               trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
-              curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
-              yum clean all
-              yum install wireguard-dkms iptables-services -y
-              until /sbin/modprobe wireguard
-              do
-                dmesg | grep wireguard;
-              done;
 
-              # source/dest check
-              INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id);
-              aws ec2 --region ${AWS::Region} modify-instance-attribute --instance-id $INSTANCE_ID --no-source-dest-check;
+              # add wireguard
+              add-apt-repository -y ppa:wireguard/wireguard
+              apt-get update
+              apt-get install -y wireguard
 
-              # iptables
-              /bin/systemctl enable iptables;
-              /bin/systemctl restart iptables;
-              /bin/systemctl status iptables;
-              /sbin/iptables -F;
-              /sbin/iptables-save > /etc/sysconfig/iptables;
-              /sbin/iptables -L;
-              # IP Forwarding
-              echo "
-              net.ipv4.conf.all.forwarding = 1
-              net.ipv6.conf.all.forwarding = 1
-              " > /etc/sysctl.d/wg.conf;
-              /sbin/sysctl --system;
-              systemctl enable wg-quick@wg0.service;
+              # Remove dnsmasq because it will run inside the container.
+              apt-get remove -y dnsmasq
 
+              # Set DNS server.
+              echo nameserver 1.1.1.1 >/etc/resolv.conf
 
               # Load modules.
               modprobe wireguard
               modprobe iptable_nat
               modprobe ip6table_nat
 
-              # Enable modules when rebooting.
-              echo "wireguard" > /etc/modules-load.d/wireguard.conf
-              echo "iptable_nat" > /etc/modules-load.d/iptable_nat.conf
-              echo "ip6table_nat" > /etc/modules-load.d/ip6table_nat.conf
+              # Enable IP forwarding
+              sysctl -w net.ipv4.ip_forward=1
+              sysctl -w net.ipv6.conf.all.forwarding=1
 
               # mount efs
               mkdir -p /home/ec2-user/config
