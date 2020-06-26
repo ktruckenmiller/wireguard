@@ -133,14 +133,17 @@ Resources:
 
               set -euxo pipefail;
               trap "/opt/aws/bin/cfn-signal --success false --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;" ERR;
-              curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
+
+              yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y;
+              curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo;
               yum clean all
-              # yum install wireguard-dkms wireguard-tools iptables-services -y;
-              # until /sbin/modprobe wireguard
-              # do
-              #   dmesg | grep wireguard;
-              # done;
-              #
+
+              yum install wireguard-dkms wireguard-tools iptables-services -y;
+              until /sbin/modprobe wireguard
+              do
+                dmesg | grep wireguard;
+              done;
+
               # # source/dest check
               # INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id);
               # aws ec2 --region ${AWS::Region} modify-instance-attribute --instance-id $INSTANCE_ID --no-source-dest-check;
