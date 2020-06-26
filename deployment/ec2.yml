@@ -260,18 +260,18 @@ Resources:
         HttpCode: 200-302
       Port: 80
 
-  # ListenerRule443:
-  #   Type: AWS::ElasticLoadBalancingV2::ListenerRule
-  #   Properties:
-  #     Actions:
-  #       - Type: forward
-  #         TargetGroupArn: !Ref TargetGroup
-  #     Conditions:
-  #       - Field: host-header
-  #         Values:
-  #         - subpsace.kloudcover.com
-  #     ListenerArn: !ImportValue kloudcover-alb:ListenerRule443
-  #     Priority: 47
+  ListenerRule443:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      Conditions:
+        - Field: host-header
+          Values:
+          - subpsace.kloudcover.com
+      ListenerArn: !ImportValue kloudcover-alb:ListenerRule443
+      Priority: 47
 
   ASG:
     Type: AWS::AutoScaling::AutoScalingGroup
