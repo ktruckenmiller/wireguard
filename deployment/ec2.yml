@@ -205,6 +205,22 @@ Resources:
     Properties:
       Protocol: HTTP
       VpcId: vpc-849531e0
+      Matcher:
+        HttpCode: 200-302
+      Port: 80
+
+  # ListenerRule443:
+  #   Type: AWS::ElasticLoadBalancingV2::ListenerRule
+  #   Properties:
+  #     Actions:
+  #       - Type: forward
+  #         TargetGroupArn: !Ref TargetGroup
+  #     Conditions:
+  #       - Field: host-header
+  #         Values:
+  #         - subpsace.kloudcover.com
+  #     ListenerArn: !ImportValue kloudcover-alb:ListenerRule443
+  #     Priority: 47
 
   ASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -260,9 +276,10 @@ Resources:
               mode: "000400"
               owner: "root"
               group: "root"
-    TargetGroupARNs:
-      - !Sub ${TargetGroup.Arn}
+
     Properties:
+      TargetGroupARNs:
+        - !Sub ${TargetGroup.Arn}
       AvailabilityZones:
         - us-west-2a
         - us-west-2b
