@@ -118,7 +118,7 @@ Resources:
           Fn::Base64:
             Fn::Sub: |
               #!/bin/sh
-              apt-get update && apt-get install \
+              apt-get update -y && apt-get install \
                 jq \
                 nfs-common \
                 python-pip \
