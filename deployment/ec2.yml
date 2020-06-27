@@ -286,7 +286,7 @@ Resources:
       Conditions:
         - Field: host-header
           Values:
-          - subpsace.kloudcover.com
+          - subspace.kloudcover.com
       ListenerArn: !ImportValue kloudcover-alb:ListenerRule443
       Priority: 47
 
