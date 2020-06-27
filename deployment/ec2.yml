@@ -167,8 +167,9 @@ Resources:
                   --cap-add NET_ADMIN \
                   --volume /home/ec2-user/config:/data \
                   -e SUBSPACE_LETSENCRYPT="false" \
-                  -e SUBSPACE_HTTP_HOST=vpn.kloudcover.com \
-                  -e SUBSPACE_HTTP_INSECURE="false" \
+                  -e SUBSPACE_HTTP_HOST=subspace.kloudcover.com \
+                  -e SUBSPACE_HTTP_INSECURE="true" \
+                  -e SUBSPACE_HTTP_ADDR="80" \
                   -e SUBSPACE_LISTENPORT="51820" \
                   -e SUBSPACE_IPV6_NAT_ENABLED=1 \
                   subspacecommunity/subspace:latest
