@@ -8,7 +8,7 @@ Parameters:
     Default: 632698fc-2d48-48ca-b781-7cf2ca114dfd
 
 Resources:
-   DNS:
+  DNS:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneName: !Sub kloudcover.com.
