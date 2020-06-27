@@ -11,13 +11,13 @@ Resources:
   DNS:
     Type: AWS::Route53::RecordSet
     Properties:
-      HostedZoneName: !Sub kloudcover.com.
+      HostedZoneName: kloudcover.com.
       Comment: DNS name for subspace
-      Name: !Sub subspace.kloudcover.com.
+      Name: subspace.kloudcover.com.
       Type: A
       AliasTarget:
         DNSName: kloudco-ALB-1XOWGRS4DIG1S-1468524797.us-west-2.elb.amazonaws.com
-        HostedZoneId: Z1IJC8V5Z715J8
+        HostedZoneId: Z1H1FL5HABSF5
 
   IAMRole:
     Type: AWS::IAM::Role
