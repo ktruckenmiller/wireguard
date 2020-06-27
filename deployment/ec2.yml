@@ -137,12 +137,22 @@ Resources:
 
               export DEBIAN_FRONTEND=noninteractive
               apt-get remove -y dnsmasq
+
+              systemctl disable systemd-resolved
               systemctl stop systemd-resolved
               echo nameserver 1.1.1.1 >/etc/resolv.conf
               # Load modules.
               modprobe wireguard
               modprobe iptable_nat
               modprobe ip6table_nat
+
+              # Enable modules when rebooting.
+              echo "wireguard" > /etc/modules-load.d/wireguard.conf
+              echo "iptable_nat" > /etc/modules-load.d/iptable_nat.conf
+              echo "ip6table_nat" > /etc/modules-load.d/ip6table_nat.conf
+
+              # Check if systemd-modules-load service is active.
+              systemctl status systemd-modules-load.service
 
               # Enable IP forwarding
               sysctl -w net.ipv4.ip_forward=1
@@ -166,6 +176,7 @@ Resources:
                   --network host \
                   --cap-add NET_ADMIN \
                   --volume /home/ec2-user/config:/data \
+                  -e SUBSPACE_NAMESERVER="1.1.1.1" \
                   -e SUBSPACE_LETSENCRYPT="false" \
                   -e SUBSPACE_HTTP_HOST=subspace.kloudcover.com \
                   -e SUBSPACE_HTTP_INSECURE="true" \
