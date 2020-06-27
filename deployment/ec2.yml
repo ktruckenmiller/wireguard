@@ -17,7 +17,7 @@ Resources:
       Type: A
       AliasTarget:
         DNSName: kloudco-ALB-1XOWGRS4DIG1S-1468524797.us-west-2.elb.amazonaws.com
-        HostedZoneId: Z35SXDOTRQ7X7K
+        HostedZoneId: Z1IJC8V5Z715J8
 
   IAMRole:
     Type: AWS::IAM::Role
@@ -171,7 +171,7 @@ Resources:
                   -e SUBSPACE_HTTP_INSECURE="false" \
                   -e SUBSPACE_LISTENPORT="51820" \
                   -e SUBSPACE_IPV6_NAT_ENABLED=1 \
-                  ktruckenmiller/subspace:latest
+                  subspacecommunity/subspace:latest
               docker start subspace
               /usr/local/bin/cfn-init -v --stack ${AWS::StackId} --resource ASG --region ${AWS::Region}
               /usr/local/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASG;
